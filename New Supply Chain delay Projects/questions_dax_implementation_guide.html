@@ -1,0 +1,470 @@
+
+<h2 class="sr-only">Interactive implementation guide showing how each of the 30 business questions maps to specific DAX measures, Power BI visuals, and dashboard pages</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.wrap{padding:1rem 0 2.5rem;max-width:680px}
+.top-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.tb{font-size:12px;padding:5px 13px;border-radius:20px;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);cursor:pointer;color:var(--color-text-secondary);font-family:inherit;transition:all .15s}
+.tb.on{border-color:transparent;color:#fff}
+.sec-lbl{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--color-text-secondary);margin:1.5rem 0 .6rem}
+.impl-card{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);background:var(--color-background-primary);margin-bottom:8px;overflow:hidden}
+.ic-head{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;cursor:pointer}
+.ic-head:hover{background:var(--color-background-secondary)}
+.ic-num{font-size:11px;font-weight:500;color:var(--color-text-secondary);min-width:22px;padding-top:1px;flex-shrink:0}
+.ic-q{font-size:13px;font-weight:500;color:var(--color-text-primary);flex:1;line-height:1.5}
+.ic-badges{display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:160px}
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.chev{font-size:16px;color:var(--color-text-secondary);transition:transform .18s;padding-top:1px;flex-shrink:0}
+.ic-body{display:none;border-top:0.5px solid var(--color-border-tertiary);padding:12px 14px 14px 46px}
+.ic-body.open{display:block}
+.impl-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.impl-sec{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.impl-list{list-style:none}
+.impl-list li{font-size:12px;color:var(--color-text-primary);padding:2px 0;line-height:1.5}
+.impl-list li::before{content:"→ ";color:var(--color-text-secondary)}
+.code{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:6px;padding:8px 10px;font-family:var(--font-mono,monospace);font-size:11px;color:var(--color-text-primary);white-space:pre;overflow-x:auto;line-height:1.6;margin-top:4px}
+.how-box{background:var(--color-background-info);border:0.5px solid var(--color-border-info);border-radius:6px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--color-text-info);line-height:1.5}
+.copy-btn{font-size:11px;padding:2px 9px;margin-top:5px;cursor:pointer;font-family:inherit}
+</style>
+
+<div class="wrap">
+<div class="top-bar" id="tabs">
+  <button class="tb on" data-cat="all" style="background:#378ADD" onclick="filter(this)">All 30</button>
+  <button class="tb" data-cat="decision" style="--on:#378ADD" onclick="filter(this)">Decision-making</button>
+  <button class="tb" data-cat="cost" style="--on:#BA7517" onclick="filter(this)">Cost & risk</button>
+  <button class="tb" data-cat="ops" style="--on:#1D9E75" onclick="filter(this)">Operations</button>
+  <button class="tb" data-cat="customer" style="--on:#7F77DD" onclick="filter(this)">Customer</button>
+  <button class="tb" data-cat="strategy" style="--on:#D85A30" onclick="filter(this)">Strategic</button>
+</div>
+<div id="list"></div>
+</div>
+
+<script>
+const CAT_COLOR={decision:"#378ADD",cost:"#BA7517",ops:"#1D9E75",customer:"#7F77DD",strategy:"#D85A30"};
+const CAT_BG={decision:"#E6F1FB",cost:"#FAEEDA",ops:"#E1F5EE",customer:"#EEEDFE",strategy:"#FAECE7"};
+const CAT_TC={decision:"#0C447C",cost:"#633806",ops:"#085041",customer:"#3C3489",strategy:"#712B13"};
+const CAT_LABEL={decision:"Decision",cost:"Cost & risk",ops:"Operations",customer:"Customer",strategy:"Strategic"};
+
+const DB_BG={"DB01":"#E6F1FB","DB02":"#E1F5EE","DB03":"#FAEEDA","DB04":"#FAECE7","DB05":"#EEEDFE"};
+const DB_TC={"DB01":"#0C447C","DB02":"#085041","DB03":"#633806","DB04":"#712B13","DB05":"#3C3489"};
+
+const DATA=[
+{n:1,cat:"decision",q:"Which carrier has the highest on-time delivery rate, and should we shift volume to them?",
+ db:"DB02",visual:"Clustered bar chart",
+ measures:["On-Time Delivery %","Late Orders Count","Total Orders"],
+ columns:["Carrier","Actual_Delivery_Date","Expected_Delivery_Date"],
+ dax:`On-Time Delivery % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Actual_Delivery_Date]
+      <= Fact_Orders[Expected_Delivery_Date]),
+  [Total Orders], 0) * 100`,
+ how:"Drag Carrier to X-axis. Add [On-Time Delivery %] as Value. Sort descending. Apply conditional formatting: green > 55%, red < 45%. Add data labels. This directly answers the question visually."
+},
+{n:2,cat:"cost",q:"What is the monthly trend in total penalty costs, and which months are above acceptable thresholds?",
+ db:"DB03",visual:"Line chart + analytics line",
+ measures:["Total Penalty Cost","Penalty Cost YTD"],
+ columns:["Order_Date","Penalty_Cost","Order_Month"],
+ dax:`Total Penalty Cost = SUM(Fact_Orders[Penalty_Cost])
+
+Monthly Avg Penalty =
+AVERAGEX(
+  VALUES(Dim_Calendar[Month]),
+  [Total Penalty Cost])`,
+ how:"X-axis: Dim_Calendar[MonthName]. Y-axis: [Total Penalty Cost]. Then in Analytics pane → add Average line → this shows threshold. Months above the line are the problem months. Add anomaly detection toggle."
+},
+{n:3,cat:"ops",q:"Which warehouse has the lowest efficiency score and what is the root cause — delay flags or processing time?",
+ db:"DB04",visual:"Key Influencers + bar chart",
+ measures:["Avg Warehouse Efficiency","Stockout Rate %"],
+ columns:["Warehouse","Warehouse_Efficiency_Score","Warehouse_Delay_Flag","Warehouse_Processing_Time"],
+ dax:`Avg Warehouse Efficiency =
+AVERAGE(Fact_Orders[Warehouse_Efficiency_Score])
+
+Delay Flag Rate =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Warehouse_Delay_Flag]=TRUE()),
+  [Total Orders], 0) * 100`,
+ how:"Step 1: Clustered bar → Axis: Warehouse, Value: [Avg Warehouse Efficiency] — shows which is lowest. Step 2: Insert Key Influencers visual → Analyze: Warehouse_Efficiency_Score → Explain by: Warehouse_Delay_Flag, Warehouse_Processing_Time, Inventory_Availability. The AI will tell you the root cause automatically."
+},
+{n:4,cat:"customer",q:"Are Premium customers experiencing better on-time delivery than Regular customers?",
+ db:"DB05",visual:"Clustered bar / matrix",
+ measures:["On-Time Delivery %","Avg Customer Satisfaction"],
+ columns:["Customer_Type","Actual_Delivery_Date","Expected_Delivery_Date","Customer_Satisfaction_Score"],
+ dax:`On-Time by Type =
+CALCULATE([On-Time Delivery %],
+  ALLEXCEPT(Fact_Orders, Fact_Orders[Customer_Type]))`,
+ how:"Drag Customer_Type to X-axis, [On-Time Delivery %] to Y-axis. Add [Avg Customer Satisfaction] as second Y-axis (combo chart). This answers both delivery AND satisfaction comparison in a single visual."
+},
+{n:5,cat:"customer",q:"Which product categories have the highest return rates, and what shipment mode correlates with them?",
+ db:"DB05",visual:"Matrix visual",
+ measures:["Return Rate %"],
+ columns:["Category","Shipping_Mode","Return_Flag"],
+ dax:`Return Rate % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Return_Flag]=TRUE()),
+  [Total Orders], 0) * 100`,
+ how:"Insert Matrix visual → Rows: Category, Columns: Shipping_Mode, Values: [Return Rate %]. Apply conditional formatting (background color scale: white→red). The darkest cell is the worst Category+Mode combination — that's your answer."
+},
+{n:6,cat:"cost",q:"Which regions contribute most to high-risk orders, and what disruption flags are driving this?",
+ db:"DB03",visual:"Stacked bar + slicer",
+ measures:["High Risk Order %","Total Orders"],
+ columns:["Region","Risk_Level","Disruption_Flag","Weather_Impact_Flag"],
+ dax:`High Risk Order % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Risk_Level]="High"),
+  [Total Orders], 0) * 100`,
+ how:"Stacked bar → Axis: Region, Legend: Risk_Level, Values: [Total Orders]. This stacks Low/Medium/High visually per region. Add Disruption_Flag and Weather_Impact_Flag as slicers — toggling them shows which flag is the driver."
+},
+{n:7,cat:"cost",q:"Is there a correlation between distance (KM) and shipping cost — are we overpaying on certain routes?",
+ db:"DB02",visual:"Scatter chart",
+ measures:["Total Shipping Cost","Avg Shipping Cost per Order"],
+ columns:["Distance_KM","Shipping_Cost","Route_Type","Carrier"],
+ dax:`Cost per KM =
+DIVIDE(
+  SUM(Fact_Orders[Shipping_Cost]),
+  SUM(Fact_Orders[Distance_KM]), 0)`,
+ how:"Scatter chart → X-axis: Distance_KM (average), Y-axis: Shipping_Cost (average), Size: Order_Quantity, Legend: Carrier. Add a trend line in Analytics pane. Points above the trend line = overpaying for that distance."
+},
+{n:8,cat:"decision",q:"Which delay reason — Carrier, Weather, or Customs — causes the most penalty cost overall?",
+ db:"DB03",visual:"Bar chart + decomposition tree",
+ measures:["Total Penalty Cost"],
+ columns:["Delay_Reason","Penalty_Cost","Region","Carrier"],
+ dax:`Penalty by Reason =
+CALCULATE(
+  [Total Penalty Cost],
+  ALLEXCEPT(Fact_Orders, Fact_Orders[Delay_Reason]))`,
+ how:"Bar chart → Axis: Delay_Reason, Value: [Total Penalty Cost]. Sort descending. Then insert Decomposition Tree → Analyze: [Total Penalty Cost] → Explain by: Delay_Reason, Region, Carrier. Click the '+' to drill from Delay_Reason into Region to see where each reason is worst."
+},
+{n:9,cat:"ops",q:"Do orders placed in Peak seasons have higher SLA breach rates than Off-season orders?",
+ db:"DB01",visual:"Clustered column chart",
+ measures:["SLA Breach Rate %","On-Time Delivery %"],
+ columns:["Season","SLA_Commitment_Days","Actual_Delivery_Date","Order_Date"],
+ dax:`SLA Breach Rate % =
+VAR Breached =
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Actual_Delivery_Date] >
+    Fact_Orders[Order_Date]
+      + Fact_Orders[SLA_Commitment_Days])
+RETURN DIVIDE(Breached, [Total Orders], 0)*100`,
+ how:"Clustered column → Axis: Season, Values: [SLA Breach Rate %] and [On-Time Delivery %] side by side. Add a slicer for Order_Priority to check if High-priority orders breach less during Peak. This answers the question with one visual."
+},
+{n:10,cat:"decision",q:"Which shipping mode provides the best balance of transit time and cost?",
+ db:"DB02",visual:"Scatter chart (bubble)",
+ measures:["Avg Shipping Cost per Order","Total Orders"],
+ columns:["Shipping_Mode","Transit_Time","Shipping_Cost"],
+ dax:`Avg Transit Time =
+AVERAGE(Fact_Orders[Transit_Time])`,
+ how:"Scatter/bubble chart → X-axis: [Avg Transit Time], Y-axis: [Avg Shipping Cost per Order], Size: [Total Orders], Legend: Shipping_Mode. Each bubble = one mode. Bottom-left quadrant = cheapest AND fastest = best balance. This answers the question in a single glance."
+},
+{n:11,cat:"ops",q:"What percentage of orders are out-of-stock at dispatch, and which warehouses are worst?",
+ db:"DB04",visual:"KPI card + bar chart",
+ measures:["Stockout Rate %"],
+ columns:["Inventory_Availability","Warehouse","Category"],
+ dax:`Stockout Rate % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Inventory_Availability]="Out of Stock"),
+  [Total Orders], 0) * 100`,
+ how:"KPI card: [Stockout Rate %] overall. Below it: clustered bar → Axis: Warehouse, Values: [Stockout Rate %]. Add Category as legend for stacking. Add conditional formatting: > 50% = red. This shows both the headline number and the breakdown."
+},
+{n:12,cat:"customer",q:"Which customer segment generates the most complaints and what are common patterns?",
+ db:"DB05",visual:"Bar + matrix",
+ measures:["Complaint Rate %"],
+ columns:["Customer_Type","Complaint_Flag","Region","Category","Shipping_Mode"],
+ dax:`Complaint Rate % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Complaint_Flag]=TRUE()),
+  [Total Orders], 0) * 100`,
+ how:"Bar chart → Axis: Customer_Type, Value: [Complaint Rate %]. Then Matrix → Rows: Customer_Type, Columns: Category, Values: [Complaint Rate %] with conditional formatting. Add Region slicer. The combination shows the segment AND the pattern (which categories drive complaints)."
+},
+{n:13,cat:"decision",q:"Is warehouse processing time a significant driver of delivery delays vs carrier-side delays?",
+ db:"DB04",visual:"Key Influencers visual",
+ measures:["Late Orders Count","Avg Days Late"],
+ columns:["Warehouse_Processing_Time","Warehouse_Delay_Flag","Carrier","Delay_Reason"],
+ dax:`Avg Days Late =
+AVERAGEX(
+  FILTER(Fact_Orders,
+    Fact_Orders[Actual_Delivery_Date]
+      > Fact_Orders[Expected_Delivery_Date]),
+  DATEDIFF(Fact_Orders[Expected_Delivery_Date],
+    Fact_Orders[Actual_Delivery_Date], DAY))`,
+ how:"Key Influencers visual → Analyze: Delivery_Status (Late/On-Time) → Explain by: Warehouse_Processing_Time, Warehouse_Delay_Flag, Carrier, Delay_Reason, Distance_KM. The visual automatically ranks which factor has the strongest influence. This is the most powerful answer to this question."
+},
+{n:14,cat:"customer",q:"How does carrier rating correlate with customer satisfaction score across regions?",
+ db:"DB05",visual:"Scatter chart",
+ measures:["Avg Customer Satisfaction"],
+ columns:["Carrier_Rating","Customer_Satisfaction_Score","Region","Carrier"],
+ dax:`Avg Carrier Rating =
+AVERAGE(Fact_Orders[Carrier_Rating])`,
+ how:"Scatter chart → X-axis: [Avg Carrier Rating], Y-axis: [Avg Customer Satisfaction], Legend: Region. Add trend line in Analytics pane. A positive slope = higher carrier rating leads to higher CSAT. Add Carrier as tooltip for hover detail."
+},
+{n:15,cat:"strategy",q:"What is the month-over-month growth rate of orders, and is the supply chain scaling to meet demand?",
+ db:"DB01",visual:"Line chart + KPI card",
+ measures:["Total Orders","MoM Order Growth %","Orders MTD"],
+ columns:["Order_Date","Order_Month","Order_Year"],
+ dax:`MoM Order Growth % =
+VAR curr = [Total Orders]
+VAR prev = CALCULATE([Total Orders],
+  DATEADD(Dim_Calendar[Date],-1,MONTH))
+RETURN DIVIDE(curr-prev, prev, 0)*100`,
+ how:"KPI card showing [MoM Order Growth %] with trend arrow. Line chart → X: MonthName, Y: [Total Orders] with second line for [On-Time Delivery %]. If orders grow but on-time % falls, the chain is NOT scaling. That's the strategic insight."
+},
+{n:16,cat:"cost",q:"Which product categories have the highest extra logistics cost per order?",
+ db:"DB03",visual:"Bar chart",
+ measures:["Total Cost Exposure","Avg Shipping Cost per Order"],
+ columns:["Category","Extra_Logistics_Cost","Shipping_Mode"],
+ dax:`Avg Extra Logistics Cost =
+DIVIDE(
+  SUM(Fact_Orders[Extra_Logistics_Cost]),
+  [Total Orders], 0)`,
+ how:"Bar chart → Axis: Category, Value: [Avg Extra Logistics Cost]. Add Shipping_Mode as legend (stacked). Sort descending. Add data labels. This shows which categories generate disproportionate extra costs per order."
+},
+{n:17,cat:"ops",q:"Which routes — domestic vs international — have the highest disruption rates and weather impacts?",
+ db:"DB02",visual:"100% stacked bar",
+ measures:["High Risk Order %"],
+ columns:["Route_Type","Disruption_Flag","Weather_Impact_Flag","Region"],
+ dax:`Disruption Rate % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Disruption_Flag]=TRUE()),
+  [Total Orders], 0)*100`,
+ how:"100% stacked bar → Axis: Route_Type (Domestic/International), Legend: Disruption_Flag, Values: [Total Orders]. Add a second chart for Weather_Impact_Flag. Add Region slicer to drill into which international region is most disrupted."
+},
+{n:18,cat:"decision",q:"Are High priority orders actually being shipped with High shipping priority — is there misalignment?",
+ db:"DB01",visual:"Matrix visual",
+ measures:["Total Orders"],
+ columns:["Order_Priority","Shipping_Priority"],
+ dax:`Priority Mismatch % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Order_Priority]="High",
+    Fact_Orders[Shipping_Priority]<>"High"),
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Order_Priority]="High"), 0)*100`,
+ how:"Matrix → Rows: Order_Priority, Columns: Shipping_Priority, Values: [Total Orders]. Apply conditional formatting. The off-diagonal cells (High Order Priority + Low Shipping Priority) = misalignment. Add [Priority Mismatch %] as a KPI card above."
+},
+{n:19,cat:"cost",q:"What is the cost per KG shipped by carrier — which carrier offers best weight-adjusted pricing?",
+ db:"DB03",visual:"Bar chart",
+ measures:["Cost per KG"],
+ columns:["Carrier","Shipping_Cost","Weight_kg","Shipping_Mode"],
+ dax:`Cost per KG =
+DIVIDE(
+  SUM(Fact_Orders[Shipping_Cost]),
+  SUM(Fact_Orders[Weight_kg]), 0)`,
+ how:"Bar chart → Axis: Carrier, Value: [Cost per KG]. Sort ascending (lowest = best value). Add Shipping_Mode as legend for stacked view. Add [Total Orders] as tooltip to see volume context. Lowest bar = best weight-adjusted pricing."
+},
+{n:20,cat:"ops",q:"Which day of week sees the most delayed orders — is there a Monday or Friday effect?",
+ db:"DB02",visual:"Bar chart",
+ measures:["Late Orders Count","On-Time Delivery %"],
+ columns:["Order_Date","Actual_Delivery_Date","Expected_Delivery_Date"],
+ dax:`Late Rate by Day =
+CALCULATE(
+  [On-Time Delivery %],
+  ALLEXCEPT(Fact_Orders, Dim_Calendar[DayName]))
+
+`,
+ how:"Add DayName column to Dim_Calendar (already in your M code). Bar chart → Axis: DayName, Value: COUNTROWS where late. Sort by day order (Mon-Sun) using a sort column (1-7). A spike on Monday or Friday is the 'day effect'."
+},
+{n:21,cat:"strategy",q:"Can we predict risk level based on region, carrier, and season combinations?",
+ db:"DB03",visual:"Matrix + Key Influencers",
+ measures:["High Risk Order %"],
+ columns:["Region","Carrier","Season","Risk_Level"],
+ dax:`Risk Score =
+SWITCH(TRUE(),
+  Fact_Orders[Risk_Level]="High", 3,
+  Fact_Orders[Risk_Level]="Medium", 2,
+  1)`,
+ how:"Matrix → Rows: Region, Columns: Season, Values: [High Risk Order %] with color scale. Then Key Influencers → Analyze: Risk_Level → Explain by: Region, Carrier, Season, Shipping_Mode. The AI ranks which combination predicts High risk most strongly."
+},
+{n:22,cat:"ops",q:"Which warehouse handles the most orders but with below-average efficiency — capacity vs quality issue?",
+ db:"DB04",visual:"Scatter chart (bubble)",
+ measures:["Total Orders","Avg Warehouse Efficiency"],
+ columns:["Warehouse","Warehouse_Efficiency_Score","Order_Quantity"],
+ dax:`Warehouse Order Count =
+CALCULATE([Total Orders],
+  ALLEXCEPT(Fact_Orders, Fact_Orders[Warehouse]))`,
+ how:"Scatter/bubble → X-axis: [Warehouse Order Count], Y-axis: [Avg Warehouse Efficiency], Size: [Stockout Rate %], Legend: Warehouse. Draw a reference line at average efficiency. Top-right = high volume, high quality. Bottom-right = high volume, LOW quality = capacity problem warehouse."
+},
+{n:23,cat:"customer",q:"Are order returns concentrated in specific cities or countries that need attention?",
+ db:"DB05",visual:"Map visual + slicer",
+ measures:["Return Rate %"],
+ columns:["Country","City","Return_Flag"],
+ dax:`Return Count =
+CALCULATE(COUNTROWS(Fact_Orders),
+  Fact_Orders[Return_Flag]=TRUE())`,
+ how:"Map visual → Location: Country (or City), Size: [Return Count], Color saturation: [Return Rate %]. High-colored large bubbles = high volume AND high rate = priority countries. Add Category slicer to see if returns are product-specific by location."
+},
+{n:24,cat:"decision",q:"What is the SLA breach rate by order priority — are Low-priority orders being deprioritised unfairly?",
+ db:"DB01",visual:"Clustered bar",
+ measures:["SLA Breach Rate %"],
+ columns:["Order_Priority","SLA_Commitment_Days","Actual_Delivery_Date","Order_Date"],
+ dax:`SLA Breach Rate % =
+VAR B = CALCULATE(COUNTROWS(Fact_Orders),
+  Fact_Orders[Actual_Delivery_Date] >
+  Fact_Orders[Order_Date]
+    + Fact_Orders[SLA_Commitment_Days])
+RETURN DIVIDE(B,[Total Orders],0)*100`,
+ how:"Clustered bar → Axis: Order_Priority (High/Medium/Low), Value: [SLA Breach Rate %]. If Low shows much higher breach than High, that's unfair deprioritisation. Add Customer_Type slicer — if Regular/Low is worse, that's the finding."
+},
+{n:25,cat:"strategy",q:"How has customer satisfaction trended quarter-on-quarter, and is it improving or declining?",
+ db:"DB05",visual:"Line chart",
+ measures:["Avg Customer Satisfaction","Orders YTD"],
+ columns:["Order_Date","Customer_Satisfaction_Score"],
+ dax:`CSAT QoQ Change =
+VAR curr = [Avg Customer Satisfaction]
+VAR prev = CALCULATE([Avg Customer Satisfaction],
+  DATEADD(Dim_Calendar[Date],-1,QUARTER))
+RETURN curr - prev`,
+ how:"Line chart → X: Quarter (from Dim_Calendar), Y: [Avg Customer Satisfaction]. Add a second line for [Return Rate %] on secondary axis. If CSAT line goes down while Return Rate goes up, it confirms deteriorating experience. Add data labels showing [CSAT QoQ Change]."
+},
+{n:26,cat:"decision",q:"Which combination of shipping mode + carrier results in the fewest delays and lowest penalty cost?",
+ db:"DB02",visual:"Matrix visual",
+ measures:["On-Time Delivery %","Total Penalty Cost"],
+ columns:["Carrier","Shipping_Mode","Actual_Delivery_Date","Expected_Delivery_Date","Penalty_Cost"],
+ dax:`Combined Performance =
+[On-Time Delivery %] -
+(DIVIDE([Total Penalty Cost],
+  [Total Shipping Cost],0)*100)`,
+ how:"Matrix → Rows: Carrier, Columns: Shipping_Mode, Values: [On-Time Delivery %]. Apply conditional formatting (green=high). The greenest cell in the matrix = best carrier+mode combination. Add [Total Penalty Cost] as second value for full picture."
+},
+{n:27,cat:"strategy",q:"Are disruption events correlated with specific seasons or regions?",
+ db:"DB03",visual:"Heat map (matrix)",
+ measures:["High Risk Order %"],
+ columns:["Season","Region","Disruption_Flag","Weather_Impact_Flag"],
+ dax:`Disruption Rate % =
+DIVIDE(
+  CALCULATE(COUNTROWS(Fact_Orders),
+    Fact_Orders[Disruption_Flag]=TRUE()),
+  [Total Orders],0)*100`,
+ how:"Matrix → Rows: Region, Columns: Season, Values: [Disruption Rate %]. Apply background color conditional formatting. The darkest cell = worst season+region combination for disruptions. Add Weather_Impact_Flag slicer to isolate weather-driven vs other disruptions."
+},
+{n:28,cat:"cost",q:"What is the total financial exposure from penalty costs in the current year vs prior year?",
+ db:"DB03",visual:"KPI card + waterfall chart",
+ measures:["Total Penalty Cost","Penalty Cost YTD"],
+ columns:["Order_Date","Penalty_Cost"],
+ dax:`Penalty Cost PYTD =
+CALCULATE([Total Penalty Cost],
+  SAMEPERIODLASTYEAR(Dim_Calendar[Date]))
+
+Penalty YoY Change =
+[Penalty Cost YTD] - [Penalty Cost PYTD]`,
+ how:"KPI card: [Penalty Cost YTD] with trend vs [Penalty Cost PYTD]. Waterfall chart → categories: Shipping Cost, Penalty Cost, Extra Logistics → shows the composition. Add [Penalty YoY Change] as a secondary card with arrow indicator (red if positive = getting worse)."
+},
+{n:29,cat:"strategy",q:"Which warehouses should be prioritised for process improvement based on delay flags and efficiency scores?",
+ db:"DB04",visual:"Scatter + conditional table",
+ measures:["Avg Warehouse Efficiency","Stockout Rate %"],
+ columns:["Warehouse","Warehouse_Delay_Flag","Warehouse_Efficiency_Score","Warehouse_Processing_Time"],
+ dax:`Warehouse Priority Score =
+(100 - [Avg Warehouse Efficiency])
+  + [Delay Flag Rate]*100
+  + [Stockout Rate %]`,
+ how:"Create [Warehouse Priority Score] measure — higher = worse = needs more attention. Bar chart → Axis: Warehouse, Value: [Warehouse Priority Score] sorted descending. Top bar = highest priority for improvement. Add a table below showing all three components side by side for detail."
+},
+{n:30,cat:"strategy",q:"Does weather impact drive higher return rates or lower satisfaction scores — quantify the relationship?",
+ db:"DB05",visual:"Clustered bar (comparison)",
+ measures:["Return Rate %","Avg Customer Satisfaction","Complaint Rate %"],
+ columns:["Weather_Impact_Flag","Return_Flag","Customer_Satisfaction_Score","Complaint_Flag"],
+ dax:`CSAT Weather Impact =
+CALCULATE([Avg Customer Satisfaction],
+  Fact_Orders[Weather_Impact_Flag]=TRUE())
+
+CSAT No Weather =
+CALCULATE([Avg Customer Satisfaction],
+  Fact_Orders[Weather_Impact_Flag]=FALSE())
+
+Weather CSAT Gap =
+[CSAT Weather Impact] - [CSAT No Weather]`,
+ how:"Clustered bar → Axis: Weather_Impact_Flag (Yes/No), Values: [Return Rate %], [Complaint Rate %], [Avg Customer Satisfaction] as three bars per group. The gap between Yes/No bars = the weather effect size. Add [Weather CSAT Gap] as a KPI card showing the exact numeric impact."
+}
+];
+
+const GROUPS=[
+ {cat:"decision",label:"Decision-making questions"},
+ {cat:"cost",label:"Cost & risk questions"},
+ {cat:"ops",label:"Operations questions"},
+ {cat:"customer",label:"Customer questions"},
+ {cat:"strategy",label:"Strategic questions"},
+];
+
+let activeCat="all";
+
+function filter(btn){
+  document.querySelectorAll(".tb").forEach(b=>{
+    b.classList.remove("on");
+    b.style.background="";
+    b.style.color="";
+  });
+  btn.classList.add("on");
+  btn.style.background=CAT_COLOR[btn.dataset.cat]||"#378ADD";
+  btn.style.color="#fff";
+  activeCat=btn.dataset.cat;
+  render();
+}
+
+function render(){
+  const list=document.getElementById("list");
+  list.innerHTML="";
+  const filtered=activeCat==="all"?DATA:DATA.filter(d=>d.cat===activeCat);
+  const groups=activeCat==="all"?GROUPS:GROUPS.filter(g=>g.cat===activeCat);
+  groups.forEach(g=>{
+    const items=filtered.filter(d=>d.cat===g.cat);
+    if(!items.length)return;
+    const lbl=document.createElement("div");
+    lbl.className="sec-lbl";
+    lbl.textContent=g.label;
+    list.appendChild(lbl);
+    items.forEach(d=>{
+      const card=document.createElement("div");
+      card.className="impl-card";
+      card.innerHTML=`
+        <div class="ic-head" onclick="tog(this)">
+          <span class="ic-num">${d.n}</span>
+          <span class="ic-q">${d.q}</span>
+          <div class="ic-badges">
+            <span class="badge" style="background:${DB_BG[d.db]};color:${DB_TC[d.db]}">${d.db}</span>
+            <span class="badge" style="background:${CAT_BG[d.cat]};color:${CAT_TC[d.cat]}">${CAT_LABEL[d.cat]}</span>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="ic-body">
+          <div class="impl-grid">
+            <div>
+              <div class="impl-sec">DAX measures needed</div>
+              <ul class="impl-list">${d.measures.map(m=>`<li>${m}</li>`).join("")}</ul>
+            </div>
+            <div>
+              <div class="impl-sec">Columns used</div>
+              <ul class="impl-list">${d.columns.map(c=>`<li>${c}</li>`).join("")}</ul>
+            </div>
+          </div>
+          <div class="impl-sec">Visual type: ${d.visual}</div>
+          <div class="code" id="code-${d.n}">${d.dax}</div>
+          <button class="copy-btn" onclick="cp(${d.n},this)"><i class="ti ti-copy" style="font-size:12px;margin-right:4px" aria-hidden="true"></i>Copy DAX</button>
+          <div class="how-box"><strong>How to build it:</strong> ${d.how}</div>
+        </div>`;
+      list.appendChild(card);
+    });
+  });
+}
+
+function tog(head){
+  const body=head.nextElementSibling;
+  const chev=head.querySelector(".chev");
+  const open=body.classList.toggle("open");
+  chev.style.transform=open?"rotate(90deg)":"";
+}
+
+function cp(n,btn){
+  const el=document.getElementById("code-"+n);
+  navigator.clipboard.writeText(el.textContent).then(()=>{
+    btn.textContent="Copied!";
+    setTimeout(()=>{ btn.innerHTML='<i class="ti ti-copy" style="font-size:12px;margin-right:4px" aria-hidden="true"></i>Copy DAX'; },1800);
+  });
+}
+
+render();
+</script>
